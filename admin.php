@@ -1,40 +1,45 @@
 <?php
 
-$username = $_POST['username'];
+if (!isset($_SESSION)) { session_start(); }
 
-if(!isset($_SESSION['session']["logged_in"])) { 
-  header("Location: login.php");
-}
+if (!isset($_SESSION['UnkUname']))
+  { // Login form not submitted
+   $_SESSION['errormsg'] = "You are not logged in, please log in first!";
+   header("Location: login.php");
+   return; 
+  }
 
-if (isset($_GET['username'])
-{
-  $username = filterinput($_POST['username']);
-}
+if (!isset($_SESSION['loggedin'])) 
+  { // Check connection first and handle error
+   $con=mysqli_connect("localhost", "admusr","admpwd","test");
+   if (mysqli_connect_error())
+     {
+      // $_SESSION['errormsg'] = "Connection failed: ".mysqli_connect_error(); 
+      $_SESSION['errormsg']="We seem to have a problem on our side, please try again later";
+      header("Location: login.php"); 
+     }
+else {
+   $qry = "SELECT username, password, usercontent FROM test.J5LI where ";
+   $qry .= "username = '". $_SESSION['UnkUname']."' and password = '". $_SESSION['UnkPword']."'";
+   $result = mysqli_query($con,$qry);
 
-include("http://242.32.23.4/inc/admin.inc.php");
-if (isset($_GET['page_id'])) {
-  include('inc/inc' . $_GET['page_id'] . '.php');
-  include('inc/inc-base.php');
-}
+   if (!$result || mysqli_num_rows($result) <= 0)
+     {
+      $_SESSION['errormsg']="No match";
+      header("Location: login.php"); 
+     }
+   else 
+     {
+      $_SESSION['errormsg']="";
+      $row = mysqli_fetch_array($result, MYSQLI_ASSOC) or die("We had a problem with the lookup.");
+      $_SESSION['username'] = $row['username'];
+      $_SESSION['usercontent'] = $row['usercontent'];
+      $_SESSION['loggedin'] = true;
+     }
+  mysqli_close($con);
+ } // end of if no error
+}  // end of if not logged in
 
-function filterinput($variable)
-{
-    $variable = str_replace("'", "\'", $variable);
-    $variable = str_replace(""", "\"", $variable);
-    return $variable;
-}
+echo "<h1>Welcome, ". $_SESSION['username'] ."</h1>";
 
-function getUserContent($username)
-{
-    $con=mysqli_connect("locahost","dbuser","abc123","my_db");
-    $result = mysqli_query($con,"SELECT user_content FROM users where username = ". $username);
-    $row = mysqli_fetch_array($result);
-    return $row['user_content'];
-    mysqli_close($con);
-}
-
-echo "<h1>Welcome, ". $username ."</h1>";
-
-echo getUserContent($username);
-
-?>
+echo "Your usercontent is: ".$_SESSION['usercontent'].", ".$_SESSION['username'];
